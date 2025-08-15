@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Zura Project — Home</title>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="manifest" href="manifest.webmanifest">
+</head>
+<body>
+  <header class="appbar">
+    <div class="brand"><span class="logo-dot"></span> Zura Project</div>
+    <nav>
+      <a href="index.html" class="active">Home</a>
+      <a href="library.html">Library</a>
+      <a href="player.html">Player</a>
+    </nav>
+  </header>
+
+  <main class="wrap">
+    <section class="hero card">
+      <h1>Play anything. Keep it offline.</h1>
+      <p>Drop audio/video files here to add them to your Zura Library. Works offline after first load.</p>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="filePicker" accept="audio/*,video/*" multiple />
+        <button class="btn primary" id="pickBtn">Add media</button>
+        <p class="muted">or drag & drop files</p>
+      </div>
+      <div id="addStatus" class="status"></div>
+    </section>
+
+    <section class="card">
+      <div class="section-head">
+        <h2>Recent in Library</h2>
+        <a class="btn ghost" href="library.html">Open Library →</a>
+      </div>
+      <ul class="media-list" id="recentList" aria-live="polite"></ul>
+    </section>
+  </main>
+
+  <footer class="footer">© <span id="year"></span> Zura Project</footer>
+
+  <script type="module" src="scripts/app.js"></script>
+  <script type="module" src="scripts/index.js"></script>
+</body>
+</html>
