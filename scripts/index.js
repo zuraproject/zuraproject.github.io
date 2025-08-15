@@ -1,4 +1,7 @@
-import { saveMedia, getAllMedia } from './app.js';
+// scripts/index.js
+import { saveMedia, getAllMedia, registerSW } from './app.js';
+
+registerSW();
 
 const filePicker = document.getElementById('filePicker');
 const pickBtn = document.getElementById('pickBtn');
@@ -6,36 +9,40 @@ const dropzone = document.getElementById('dropzone');
 const addStatus = document.getElementById('addStatus');
 const recentList = document.getElementById('recentList');
 const yearEl = document.getElementById('year');
-yearEl.textContent = new Date().getFullYear();
+if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-pickBtn.onclick = () => filePicker.click();
-filePicker.onchange = (e) => handleFiles(e.target.files);
+pickBtn?.addEventListener('click', () => filePicker.click());
+filePicker?.addEventListener('change', (e) => handleFiles(e.target.files));
 
-dropzone.ondragover = (e) => { e.preventDefault(); dropzone.classList.add('hover'); };
-dropzone.ondragleave = () => dropzone.classList.remove('hover');
-dropzone.ondrop = (e) => {
+dropzone?.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('hover'); });
+dropzone?.addEventListener('dragleave', () => dropzone.classList.remove('hover'));
+dropzone?.addEventListener('drop', (e) => {
   e.preventDefault();
   dropzone.classList.remove('hover');
   handleFiles(e.dataTransfer.files);
-};
+});
 
 async function handleFiles(files) {
   let added = 0;
   for (const file of files) {
-    await saveMedia(file);
-    added++;
+    try { await saveMedia(file); added++; } catch {}
   }
-  addStatus.textContent = `${added} file(s) added to library`;
-  loadRecent();
+  if (addStatus) addStatus.textContent = `${added} file(s) added to library`;
+  await loadRecent();
 }
 
 async function loadRecent() {
   const media = await getAllMedia();
   recentList.innerHTML = '';
-  media.slice(-5).forEach(item => {
+  if (!media.length) return;
+  media.slice(-5).reverse().forEach(item => {
     const li = document.createElement('li');
-    li.textContent = item.name;
+    const a = document.createElement('a');
+    a.href = `player.html?id=${item.id}`;
+    a.textContent = `${item.name}`;
+    li.appendChild(a);
     recentList.appendChild(li);
   });
 }
+
 loadRecent();
