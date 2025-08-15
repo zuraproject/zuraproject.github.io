@@ -1,95 +1,100 @@
-import { openDB, saveMedia, getAllMedia, getMediaById, deleteMedia, clearLibrary, arrayBufferToObjectURL, registerSW } from './db.js';
+// db.js (renamed from app.js for clarity)
+export const dbName = 'zuraMediaDB';
+export const storeName = 'mediaStore';
+const DB_VERSION = 1;
 
-const dropzone = document.getElementById('dropzone');
-const pickBtn = document.getElementById('pickBtn');
-const filePicker = document.getElementById('filePicker');
-const mediaList = document.getElementById('mediaList');
-const video = document.getElementById('videoPlayer');
-const audio = document.getElementById('audioPlayer');
-const audioBarsContainer = document.getElementById('audioBarsContainer');
-const audioBars = document.getElementById('audioBars');
-const clearLibraryBtn = document.getElementById('clearLibraryBtn');
-
-registerSW();
-
-let library = [];
-
-async function loadLibrary() {
-  const media = await getAllMedia();
-  library = media.map(m => ({ ...m, url: arrayBufferToObjectURL(m.data, m.type) }));
-  renderLibrary();
-}
-
-function renderLibrary() {
-  mediaList.innerHTML = '';
-  library.forEach((item, index) => {
-    const li = document.createElement('li');
-    li.innerHTML = `<div style="font-size:2rem">${item.type.startsWith('audio')?'🎵':'🎬'}</div>
-                    <span>${item.name}</span>`;
-    li.onclick = () => playMedia(item);
-    const delBtn = document.createElement('button');
-    delBtn.textContent = '✖';
-    delBtn.className = 'btn small danger';
-    delBtn.onclick = async (e) => {
-      e.stopPropagation();
-      await deleteMedia(item.id);
-      await loadLibrary();
+// Open IndexedDB
+export function openDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(dbName, DB_VERSION);
+    req.onupgradeneeded = () => {
+      const db = req.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        const store = db.createObjectStore(storeName, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('by_created', 'created');
+      }
     };
-    li.appendChild(delBtn);
-    mediaList.appendChild(li);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
   });
 }
 
-function playMedia(item) {
-  if (item.type.startsWith('audio')) {
-    audio.src = item.url;
-    audio.style.display = 'block';
-    video.style.display = 'none';
-    showAudioBars(true);
-    audio.play();
-  } else {
-    video.src = item.url;
-    video.style.display = 'block';
-    audio.style.display = 'none';
-    showAudioBars(false);
-    video.play();
+// Save media
+export async function saveMedia(file) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const obj = {
+        name: file.name,
+        type: file.type || '',
+        size: file.size || 0,
+        created: Date.now(),
+        data: reader.result
+      };
+      const req = store.add(obj);
+      req.onsuccess = () => resolve(req.result);
+      tx.onerror = () => reject(tx.error);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+// Get all media
+export async function getAllMedia() {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).getAll();
+    req.onsuccess = () => resolve(req.result || []);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Get media by ID
+export async function getMediaById(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readonly');
+    const req = tx.objectStore(storeName).get(Number(id));
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+// Delete media
+export async function deleteMedia(id) {
+  const db = await openDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(storeName, 'readwrite');
+    tx.objectStore(storeName).delete(Number(id));
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+  });
+}
+
+// Clear library
+export async function clearLibrary() {
+  if (!confirm('Are you sure you want to clear the library?')) return;
+  if (!confirm('This action is permanent. Clear library now?')) return;
+  const db = await openDB();
+  const tx = db.transaction(storeName, 'readwrite');
+  tx.objectStore(storeName).clear();
+  await new Promise(res => (tx.oncomplete = res));
+}
+
+// Convert ArrayBuffer to object URL
+export function arrayBufferToObjectURL(ab, type = '') {
+  const blob = new Blob([ab], { type });
+  return URL.createObjectURL(blob);
+}
+
+// Service Worker registration
+export function registerSW() {
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 }
-
-function showAudioBars(show) {
-  audioBarsContainer.style.display = show ? 'flex' : 'none';
-}
-
-// Populate audio bars for animation
-audioBars.innerHTML = '';
-for (let i = 0; i < 10; i++) {
-  const bar = document.createElement('div');
-  bar.style.setProperty('--i', i);
-  audioBars.appendChild(bar);
-}
-
-// File handling
-async function handleFiles(files) {
-  for (const file of files) {
-    await saveMedia(file);
-  }
-  await loadLibrary();
-}
-
-dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('hover'); });
-dropzone.addEventListener('dragleave', e => { dropzone.classList.remove('hover'); });
-dropzone.addEventListener('drop', async e => {
-  e.preventDefault(); dropzone.classList.remove('hover');
-  await handleFiles(e.dataTransfer.files);
-});
-
-pickBtn.addEventListener('click', () => filePicker.click());
-filePicker.addEventListener('change', async () => await handleFiles(filePicker.files));
-
-clearLibraryBtn.addEventListener('click', async () => {
-  await clearLibrary();
-  await loadLibrary();
-});
-
-document.getElementById('year').textContent = new Date().getFullYear();
-loadLibrary();
