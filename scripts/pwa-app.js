@@ -2,14 +2,14 @@ import { saveMedia,getAllMedia,getMediaById,deleteMedia,arrayBufferToObjectURL,c
 
 registerSW();
 
+// Views
 const views = { home:document.getElementById('view-home'), library:document.getElementById('view-library'), player:document.getElementById('view-player') };
 const navLinks = document.querySelectorAll('nav a');
 
 navLinks.forEach(a=>{
   a.addEventListener('click',e=>{
     e.preventDefault();
-    const view = a.dataset.view;
-    showView(view);
+    showView(a.dataset.view);
   });
 });
 
@@ -19,7 +19,7 @@ function showView(name){
   navLinks.forEach(a=>a.classList.toggle('active',a.dataset.view===name));
 }
 
-// Sidebar / settings
+// Sidebar / Settings
 const sidebar=document.getElementById('sidebar');
 document.getElementById('settingsBtn').addEventListener('click',()=>{sidebar.style.display='block';});
 document.getElementById('closeSettingsBtn').addEventListener('click',()=>{sidebar.style.display='none';});
@@ -30,7 +30,7 @@ document.getElementById('clearLibraryBtn').addEventListener('click',async ()=>{
   sidebar.style.display='none';
 });
 
-// Home logic
+// Home Logic
 const filePicker=document.getElementById('filePicker');
 const pickBtn=document.getElementById('pickBtn');
 const dropzone=document.getElementById('dropzone');
@@ -65,7 +65,7 @@ async function loadRecent(){
   });
 }
 
-// Library logic
+// Library Logic
 const libraryList=document.getElementById('libraryList');
 const searchInput=document.getElementById('searchInput');
 const emptyMsg=document.getElementById('emptyMsg');
@@ -94,7 +94,7 @@ async function renderLibrary(filter=''){
 
 searchInput.addEventListener('input',()=>renderLibrary(searchInput.value));
 
-// Player logic
+// Player Logic
 const video=document.getElementById('videoPlayer');
 const audio=document.getElementById('audioPlayer');
 const seekSlider=document.getElementById('seekSlider');
@@ -121,6 +121,22 @@ playPauseBtn.addEventListener('click',()=>{if(activeEl){activeEl.paused?activeEl
 volumeSlider.addEventListener('input',()=>{if(activeEl) activeEl.volume=volumeSlider.value;});
 seekSlider.addEventListener('input',()=>{if(activeEl&&activeEl.duration){activeEl.currentTime=(seekSlider.value/100)*activeEl.duration;}});
 setInterval(()=>{if(activeEl&&activeEl.duration) seekSlider.value=(activeEl.currentTime/activeEl.duration)*100;},200);
+
+// iOS Add to Home Screen
+const a2hsBanner = document.getElementById('a2hsBanner');
+const dismissBtn = document.getElementById('dismissA2HS');
+
+function isiOS() { return /iphone|ipad|ipod/.test(window.navigator.userAgent.toLowerCase()); }
+function isInStandaloneMode() { return ('standalone' in window.navigator) && window.navigator.standalone; }
+
+if(isiOS() && !isInStandaloneMode() && !localStorage.getItem('a2hsDismissed')){
+  a2hsBanner.style.display='block';
+}
+
+dismissBtn.addEventListener('click',()=>{
+  a2hsBanner.style.display='none';
+  localStorage.setItem('a2hsDismissed','true');
+});
 
 // Init
 showView('home');
