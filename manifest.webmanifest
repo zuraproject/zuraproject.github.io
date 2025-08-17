@@ -1,8 +1,18 @@
 {
   "name": "Zura Project",
   "short_name": "Zura",
-  "start_url": ".",
+  "description": "Play anything offline. Audio and video library for iOS and web.",
+  "start_url": "./index.html",
   "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#111111"
+  "background_color": "#0b0d10",
+  "theme_color": "#6ea8fe",
+  "orientation": "portrait-primary",
+  "categories": ["music", "video", "entertainment"],
+  "icons": [
+    {
+      "src": "favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
 }
