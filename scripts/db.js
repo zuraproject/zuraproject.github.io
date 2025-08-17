@@ -1,3 +1,5 @@
+// IndexedDB + utilities for Zura Project
+
 export const dbName = 'zuraMediaDB';
 export const storeName = 'mediaStore';
 const DB_VERSION = 1;
@@ -69,6 +71,7 @@ export async function clearLibrary() {
   const db = await openDB();
   const tx = db.transaction(storeName, 'readwrite');
   tx.objectStore(storeName).clear();
+  await new Promise(r => (tx.oncomplete = r));
 }
 
 export function arrayBufferToObjectURL(ab, type = '') {
@@ -77,5 +80,7 @@ export function arrayBufferToObjectURL(ab, type = '') {
 }
 
 export function registerSW() {
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => { });
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  }
 }
