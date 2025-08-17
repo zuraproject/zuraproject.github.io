@@ -3,9 +3,12 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <!-- iOS PWA -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zura Project">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+
   <title>Zura Project</title>
 
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,19 +24,12 @@
     <a href="#" data-view="home" class="active">Home</a>
     <a href="#" data-view="library">Library</a>
     <a href="#" data-view="player">Player</a>
-    <button id="settingsBtn" class="btn small">⚙️</button>
   </nav>
 </header>
 
-<aside id="sidebar" class="sidebar" style="display:none;">
-  <h3>Settings</h3>
-  <button id="clearLibraryBtn" class="btn danger">Clear Library</button>
-  <button id="closeSettingsBtn" class="btn ghost">Close</button>
-</aside>
-
 <!-- iOS Add to Home Screen banner -->
 <div id="a2hsBanner" class="card" style="display:none;">
-  <p>Install Zura Project on your iOS device: tap <strong>Share → Add to Home Screen</strong> for the best experience.</p>
+  <p>Install Zura Project on iOS: tap <strong>Share → Add to Home Screen</strong> for the best experience.</p>
   <button class="btn ghost" id="dismissA2HS">Dismiss</button>
 </div>
 
@@ -43,7 +39,8 @@
   <section id="view-home" class="view card">
     <h1>Play anything. Keep it offline.</h1>
     <div class="dropzone" id="dropzone">
-      <input type="file" id="filePicker" accept="audio/*,video/*" multiple hidden>
+      <!-- Full audio support + any video -->
+      <input type="file" id="filePicker" accept="audio/*,video/*,.m4a,.ogg,.mp3,.wav" multiple hidden>
       <button class="btn primary" id="pickBtn">Add media</button>
       <p class="muted">or drag & drop files</p>
     </div>
@@ -68,11 +65,19 @@
   <!-- Player View -->
   <section id="view-player" class="view card" style="display:none;">
     <h2 id="nowPlayingTitle">Now Playing</h2>
-    <video id="videoPlayer" controls style="display:none;" preload="metadata" playsinline></video>
+
+    <!-- Video player (PiP capable) -->
+    <div class="video-wrap" id="videoWrap" style="display:none;">
+      <video id="videoPlayer" controls preload="metadata" playsinline></video>
+      <button id="pipBtn" class="btn ghost small" title="Picture in Picture">📺 PiP</button>
+    </div>
+
+    <!-- Audio player -->
     <audio id="audioPlayer" controls style="display:none;" preload="metadata"></audio>
+
     <div class="controls">
-      <input id="seekSlider" type="range" min="0" max="100" value="0" step="0.1">
-      <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="1">
+      <input id="seekSlider" type="range" min="0" max="100" value="0" step="0.1" aria-label="Seek">
+      <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="1" aria-label="Volume">
       <button id="playPauseBtn" class="btn primary">Play/Pause</button>
     </div>
   </section>
