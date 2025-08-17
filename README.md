@@ -1,4 +1,4 @@
-Zura is a media player designed for iOS that does not require any modding.
+Zura is a web-based media player designed for iOS that does not require any modding.
 
 How to install:
 
