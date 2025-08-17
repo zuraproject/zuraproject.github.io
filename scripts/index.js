@@ -4,14 +4,14 @@ import { saveMedia, getAllMedia, registerSW } from './app.js';
 registerSW();
 
 const filePicker = document.getElementById('filePicker');
-const pickBtn = document.getElementById('pickBtn');
+const uploadBtn = document.getElementById('uploadBtn');
 const dropzone = document.getElementById('dropzone');
 const addStatus = document.getElementById('addStatus');
 const recentList = document.getElementById('recentList');
 const yearEl = document.getElementById('year');
 if (yearEl) yearEl.textContent = new Date().getFullYear();
 
-pickBtn?.addEventListener('click', () => filePicker.click());
+uploadBtn?.addEventListener('click', () => filePicker.click());
 filePicker?.addEventListener('change', (e) => handleFiles(e.target.files));
 
 dropzone?.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('hover'); });
