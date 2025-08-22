@@ -12,9 +12,31 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.webmanifest">
+  <style>
+    /* Add this style for the loading overlay and highlighting */
+    #libraryLoading {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(20,23,28,0.86);
+      color: #fff;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: opacity 0.3s;
+    }
+    .highlight {
+      background: #ffe066;
+      color: #0b0d10;
+      border-radius: 3px;
+      padding: 0 2px;
+    }
+  </style>
 </head>
 <body>
-
 <header class="appbar">
   <div class="brand"><span class="logo-dot"></span> Zura Project</div>
   <nav>
@@ -29,6 +51,9 @@
   <p>Install Zura Project on your iOS device: tap <strong>Share → Add to Home Screen</strong> for the best experience.</p>
   <button class="btn ghost" id="dismissA2HS">Dismiss</button>
 </div>
+
+<!-- Loading overlay for the Library -->
+<div id="libraryLoading">Loading Library…</div>
 
 <main class="wrap">
 
