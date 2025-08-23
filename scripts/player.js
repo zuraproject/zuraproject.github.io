@@ -1,4 +1,5 @@
 // scripts/player.js
+
 document.addEventListener('DOMContentLoaded', () => {
   const audio = document.getElementById('audioPlayer');
   const video = document.getElementById('videoPlayer');
@@ -21,105 +22,154 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
-  // Determine which media element is in use (audio or video)
-  function getActiveMedia() {
-    return (video && video.style.display !== 'none') ? video : audio;
-  }
-  let media = getActiveMedia();
-
-  // Always loop
+  // Always set loop on both
   audio.loop = true;
   video.loop = true;
 
+  // Get the currently visible media element
+  function getActiveMedia() {
+    if (video.style.display !== 'none') return video;
+    return audio;
+  }
+
+  // Unbind all events from a media element
+  function unbindMediaEvents(m) {
+    if (!m) return;
+    m.ontimeupdate = null;
+    m.onplay = null;
+    m.onpause = null;
+    m.onvolumechange = null;
+    m.onloadedmetadata = null;
+    m.onended = null;
+  }
+
+  // Bind all events to the current media element
+  function bindMediaEvents(m) {
+    if (!m) return;
+
+    m.ontimeupdate = updateProgress;
+    m.onplay = () => { playPauseIcon.textContent = "⏸️"; };
+    m.onpause = () => { playPauseIcon.textContent = "▶️"; };
+    m.onvolumechange = updateMuteIcon;
+    m.onloadedmetadata = updateProgress;
+    m.onended = () => {
+      m.currentTime = 0;
+      m.play();
+    };
+  }
+
+  // Switch controls and events to the correct media element
+  function switchMedia(newMedia) {
+    if (!newMedia) return;
+    if (window._currentMedia && window._currentMedia !== newMedia) {
+      unbindMediaEvents(window._currentMedia);
+    }
+    window._currentMedia = newMedia;
+    bindMediaEvents(newMedia);
+    updateProgress();
+    updateMuteIcon();
+    volumeSlider.value = newMedia.volume;
+  }
+
+  // Update progress bar and times
+  function updateProgress() {
+    const m = window._currentMedia;
+    if (!m) return;
+    seekSlider.value = (m.currentTime / m.duration) * 100 || 0;
+    currentTimeEl.textContent = formatTime(m.currentTime);
+    durationEl.textContent = formatTime(m.duration);
+  }
+
+  // Update mute icon
+  function updateMuteIcon() {
+    const m = window._currentMedia;
+    if (!m) return;
+    muteIcon.textContent = m.muted || m.volume === 0 ? "🔈" : "🔊";
+  }
+
   // Play/pause toggle
   playPauseBtn.onclick = () => {
-    if (media.paused) {
-      media.play();
-    } else {
-      media.pause();
-    }
+    const m = window._currentMedia;
+    if (!m) return;
+    if (m.paused) m.play();
+    else m.pause();
   };
 
   // Replay
   replayBtn.onclick = () => {
-    media.currentTime = 0;
-    media.play();
+    const m = window._currentMedia;
+    if (!m) return;
+    m.currentTime = 0;
+    m.play();
   };
 
   // Mute/unmute
   muteBtn.onclick = () => {
-    media.muted = !media.muted;
+    const m = window._currentMedia;
+    if (!m) return;
+    m.muted = !m.muted;
     updateMuteIcon();
   };
-  function updateMuteIcon() {
-    muteIcon.textContent = media.muted || media.volume === 0 ? "🔈" : "🔊";
-  }
 
-  // Fullscreen
+  // Fullscreen (video only)
   fullscreenBtn.onclick = () => {
-    if (media.requestFullscreen) media.requestFullscreen();
-    else if (media.webkitRequestFullscreen) media.webkitRequestFullscreen();
-    else if (media.msRequestFullscreen) media.msRequestFullscreen();
+    const m = window._currentMedia;
+    if (!m) return;
+    if (m.tagName === "VIDEO") {
+      if (m.requestFullscreen) m.requestFullscreen();
+      else if (m.webkitRequestFullscreen) m.webkitRequestFullscreen();
+      else if (m.msRequestFullscreen) m.msRequestFullscreen();
+    }
   };
 
   // Seek slider
   seekSlider.oninput = () => {
-    media.currentTime = (seekSlider.value / 100) * media.duration;
+    const m = window._currentMedia;
+    if (!m || !m.duration) return;
+    m.currentTime = (seekSlider.value / 100) * m.duration;
   };
+
   // Volume slider
   volumeSlider.oninput = () => {
-    media.volume = volumeSlider.value;
-    if (media.volume === 0) media.muted = true;
-    else media.muted = false;
-    updateMuteIcon();
-  };
-
-  // Progress/time update
-  function updateProgress() {
-    seekSlider.value = (media.currentTime / media.duration) * 100 || 0;
-    currentTimeEl.textContent = formatTime(media.currentTime);
-    durationEl.textContent = formatTime(media.duration);
-  }
-
-  media.ontimeupdate = updateProgress;
-  media.onplay = () => { playPauseIcon.textContent = "⏸️"; };
-  media.onpause = () => { playPauseIcon.textContent = "▶️"; };
-  media.onvolumechange = updateMuteIcon;
-  media.onloadedmetadata = () => {
-    durationEl.textContent = formatTime(media.duration);
-    seekSlider.value = (media.currentTime / media.duration) * 100 || 0;
-    currentTimeEl.textContent = formatTime(media.currentTime);
+    const m = window._currentMedia;
+    if (!m) return;
+    m.volume = volumeSlider.value;
+    m.muted = m.volume === 0;
     updateMuteIcon();
   };
 
   // Click progress bar to seek
   seekSlider.addEventListener('click', (e) => {
+    const m = window._currentMedia;
+    if (!m || !m.duration) return;
     const rect = seekSlider.getBoundingClientRect();
     const pct = (e.clientX - rect.left) / rect.width;
     seekSlider.value = pct * 100;
-    media.currentTime = pct * media.duration;
+    m.currentTime = pct * m.duration;
   });
 
   // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (document.activeElement.tagName === "INPUT") return;
+    const m = window._currentMedia;
+    if (!m) return;
     switch (e.key) {
       case " ":
         playPauseBtn.click();
         e.preventDefault();
         break;
       case "ArrowLeft":
-        media.currentTime = Math.max(0, media.currentTime - 5);
+        m.currentTime = Math.max(0, m.currentTime - 5);
         break;
       case "ArrowRight":
-        media.currentTime = Math.min(media.duration, media.currentTime + 5);
+        m.currentTime = Math.min(m.duration, m.currentTime + 5);
         break;
       case "ArrowUp":
-        media.volume = Math.min(1, media.volume + 0.05);
+        m.volume = Math.min(1, m.volume + 0.05);
         updateMuteIcon();
         break;
       case "ArrowDown":
-        media.volume = Math.max(0, media.volume - 0.05);
+        m.volume = Math.max(0, m.volume - 0.05);
         updateMuteIcon();
         break;
       case "m":
@@ -129,41 +179,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Always start at beginning, always loop
-  media.addEventListener('ended', () => {
-    media.currentTime = 0;
-    media.play();
-  });
+  // This function should be called when you switch between audio and video:
+  window.switchPlayerMedia = function(newMedia) {
+    switchMedia(newMedia);
+  };
 
-  // If switching between audio/video, update event listeners accordingly
-  function switchMedia(newMedia) {
-    if (media === newMedia) return;
-    media = newMedia;
-    audio.loop = true;
-    video.loop = true;
-    updateProgress();
-    updateMuteIcon();
-    media.ontimeupdate = updateProgress;
-    media.onplay = () => { playPauseIcon.textContent = "⏸️"; };
-    media.onpause = () => { playPauseIcon.textContent = "▶️"; };
-    media.onvolumechange = updateMuteIcon;
-    media.onloadedmetadata = () => {
-      durationEl.textContent = formatTime(media.duration);
-      seekSlider.value = (media.currentTime / media.duration) * 100 || 0;
-      currentTimeEl.textContent = formatTime(media.currentTime);
-      updateMuteIcon();
-    };
-    media.addEventListener('ended', () => {
-      media.currentTime = 0;
-      media.play();
-    });
-  }
+  // Initial binding (pick which is visible)
+  switchMedia(getActiveMedia());
 
-  // Export switchMedia if needed elsewhere:
-  window.switchPlayerMedia = switchMedia;
-
-  // Set initial volume
-  volumeSlider.value = media.volume;
-  updateMuteIcon();
-  updateProgress();
+  // If your app logic hides/shows video/audio, call: window.switchPlayerMedia(audio) or window.switchPlayerMedia(video)
 });
