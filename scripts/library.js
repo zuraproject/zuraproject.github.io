@@ -1,5 +1,5 @@
 // scripts/library.js
-import { getAllMedia, registerSW } from './app.js';
+import { getAllMedia, getMediaById, arrayBufferToObjectURL, registerSW } from './app.js';
 registerSW();
 
 const libraryList = document.getElementById('libraryList');
@@ -25,7 +25,6 @@ function fuzzyMatch(str, query) {
 // Highlight matching query in text
 function highlightMatch(text, query) {
   if (!query) return text;
-  // Use a simple regex for match highlighting
   const escQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const regex = new RegExp(`(${escQuery})`, 'ig');
   return text.replace(regex, '<span class="highlight">$1</span>');
@@ -40,7 +39,6 @@ async function renderLibrary(filter = '') {
 
   libraryList.innerHTML = '';
   const norm = filter.trim().toLowerCase();
-  // Fuzzy match on name and type
   const filtered = media
     .filter(i =>
       fuzzyMatch(i.name, norm) ||
@@ -57,16 +55,19 @@ async function renderLibrary(filter = '') {
   for (const item of filtered) {
     const li = document.createElement('li');
     const a = document.createElement('a');
-    a.href = `player.html?id=${item.id}`;
-    // Highlight matches in name
+    a.href = "#";
     a.innerHTML = highlightMatch(item.name, filter);
-    li.appendChild(a);
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      playMediaInPlayer(item.id);
+    });
 
     // Optional: show meta
     const meta = document.createElement('span');
     meta.className = 'muted';
     meta.style.float = 'right';
     meta.textContent = item.type ? item.type.split('/')[0] : '';
+    li.appendChild(a);
     li.appendChild(meta);
 
     libraryList.appendChild(li);
@@ -82,3 +83,58 @@ async function checkAndLoadLibrary() {
   if (libraryLoading) libraryLoading.style.display = 'none';
 }
 checkAndLoadLibrary();
+
+// In-page player logic!
+async function playMediaInPlayer(id) {
+  const media = await getMediaById(id);
+  if (!media) return alert('Media not found!');
+
+  // DOM elements for sections/views
+  const viewHome = document.getElementById('view-home');
+  const viewLibrary = document.getElementById('view-library');
+  const viewPlayer = document.getElementById('view-player');
+  // DOM elements for player
+  const audio = document.getElementById('audioPlayer');
+  const video = document.getElementById('videoPlayer');
+  const nowPlayingTitle = document.getElementById('nowPlayingTitle');
+  
+  // Hide other views, show player view
+  if (viewHome) viewHome.style.display = 'none';
+  if (viewLibrary) viewLibrary.style.display = 'none';
+  if (viewPlayer) viewPlayer.style.display = '';
+  
+  let url = arrayBufferToObjectURL(media.data, media.type);
+
+  // Show and load appropriate player
+  if (media.type.startsWith('video/')) {
+    if (audio) {
+      audio.pause();
+      audio.removeAttribute('src');
+      audio.style.display = 'none';
+    }
+    if (video) {
+      video.src = url;
+      video.style.display = '';
+      video.load();
+      video.play().catch(()=>{});
+    }
+  } else if (media.type.startsWith('audio/')) {
+    if (video) {
+      video.pause();
+      video.removeAttribute('src');
+      video.style.display = 'none';
+    }
+    if (audio) {
+      audio.src = url;
+      audio.style.display = '';
+      audio.load();
+      audio.play().catch(()=>{});
+    }
+  } else {
+    alert("Unsupported media type.");
+    return;
+  }
+
+  // Set media name as title
+  if (nowPlayingTitle) nowPlayingTitle.textContent = media.name || "Now Playing";
+}
