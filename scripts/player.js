@@ -1,5 +1,3 @@
-// scripts/player.js
-
 document.addEventListener('DOMContentLoaded', () => {
   const audio = document.getElementById('audioPlayer');
   const video = document.getElementById('videoPlayer');
@@ -14,7 +12,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const currentTimeEl = document.getElementById('currentTime');
   const durationEl = document.getElementById('duration');
 
-  // Helper: format time mm:ss
+  // Set loop always
+  audio.loop = true;
+  video.loop = true;
+
   function formatTime(t) {
     if (!isFinite(t)) return "0:00";
     const m = Math.floor(t / 60);
@@ -22,19 +23,37 @@ document.addEventListener('DOMContentLoaded', () => {
     return `${m}:${s.toString().padStart(2, '0')}`;
   }
 
-  // Always set loop on both
-  audio.loop = true;
-  video.loop = true;
-
-  // Get the currently visible media element
   function getActiveMedia() {
-    if (video.style.display !== 'none') return video;
-    return audio;
+    return (video.style.display !== 'none') ? video : audio;
   }
 
-  // Unbind all events from a media element
+  function updateMuteIcon(m) {
+    muteIcon.textContent = m.muted || m.volume === 0 ? "🔈" : "🔊";
+  }
+
+  function updateProgress(m) {
+    seekSlider.value = (m.currentTime / m.duration) * 100 || 0;
+    currentTimeEl.textContent = formatTime(m.currentTime);
+    durationEl.textContent = formatTime(m.duration);
+  }
+
+  function bindMediaEvents(m) {
+    m.ontimeupdate = () => updateProgress(m);
+    m.onplay = () => { playPauseIcon.textContent = "⏸️"; };
+    m.onpause = () => { playPauseIcon.textContent = "▶️"; };
+    m.onvolumechange = () => updateMuteIcon(m);
+    m.onloadedmetadata = () => updateProgress(m);
+    m.onended = () => {
+      m.currentTime = 0;
+      m.play();
+    };
+    // Set initial states
+    updateMuteIcon(m);
+    updateProgress(m);
+    volumeSlider.value = m.volume;
+  }
+
   function unbindMediaEvents(m) {
-    if (!m) return;
     m.ontimeupdate = null;
     m.onplay = null;
     m.onpause = null;
@@ -43,51 +62,16 @@ document.addEventListener('DOMContentLoaded', () => {
     m.onended = null;
   }
 
-  // Bind all events to the current media element
-  function bindMediaEvents(m) {
-    if (!m) return;
-
-    m.ontimeupdate = updateProgress;
-    m.onplay = () => { playPauseIcon.textContent = "⏸️"; };
-    m.onpause = () => { playPauseIcon.textContent = "▶️"; };
-    m.onvolumechange = updateMuteIcon;
-    m.onloadedmetadata = updateProgress;
-    m.onended = () => {
-      m.currentTime = 0;
-      m.play();
-    };
-  }
-
-  // Switch controls and events to the correct media element
+  // Use this after switching visible media element!
   function switchMedia(newMedia) {
-    if (!newMedia) return;
     if (window._currentMedia && window._currentMedia !== newMedia) {
       unbindMediaEvents(window._currentMedia);
     }
     window._currentMedia = newMedia;
     bindMediaEvents(newMedia);
-    updateProgress();
-    updateMuteIcon();
-    volumeSlider.value = newMedia.volume;
   }
 
-  // Update progress bar and times
-  function updateProgress() {
-    const m = window._currentMedia;
-    if (!m) return;
-    seekSlider.value = (m.currentTime / m.duration) * 100 || 0;
-    currentTimeEl.textContent = formatTime(m.currentTime);
-    durationEl.textContent = formatTime(m.duration);
-  }
-
-  // Update mute icon
-  function updateMuteIcon() {
-    const m = window._currentMedia;
-    if (!m) return;
-    muteIcon.textContent = m.muted || m.volume === 0 ? "🔈" : "🔊";
-  }
-
-  // Play/pause toggle
+  // --- Button events ---
   playPauseBtn.onclick = () => {
     const m = window._currentMedia;
     if (!m) return;
@@ -95,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
     else m.pause();
   };
 
-  // Replay
   replayBtn.onclick = () => {
     const m = window._currentMedia;
     if (!m) return;
@@ -103,42 +86,39 @@ document.addEventListener('DOMContentLoaded', () => {
     m.play();
   };
 
-  // Mute/unmute
   muteBtn.onclick = () => {
     const m = window._currentMedia;
     if (!m) return;
     m.muted = !m.muted;
-    updateMuteIcon();
+    updateMuteIcon(m);
   };
 
-  // Fullscreen (video only)
   fullscreenBtn.onclick = () => {
     const m = window._currentMedia;
-    if (!m) return;
-    if (m.tagName === "VIDEO") {
-      if (m.requestFullscreen) m.requestFullscreen();
-      else if (m.webkitRequestFullscreen) m.webkitRequestFullscreen();
-      else if (m.msRequestFullscreen) m.msRequestFullscreen();
-    }
+    if (!m || m.tagName !== "VIDEO") return;
+    // Try all possible fullscreen methods
+    if (m.requestFullscreen) m.requestFullscreen();
+    else if (m.webkitRequestFullscreen) m.webkitRequestFullscreen();
+    else if (m.msRequestFullscreen) m.msRequestFullscreen();
+    else if (m.webkitEnterFullscreen) m.webkitEnterFullscreen(); // iOS Safari
   };
 
-  // Seek slider
   seekSlider.oninput = () => {
     const m = window._currentMedia;
     if (!m || !m.duration) return;
     m.currentTime = (seekSlider.value / 100) * m.duration;
   };
 
-  // Volume slider
   volumeSlider.oninput = () => {
     const m = window._currentMedia;
     if (!m) return;
+    // Set volume (0..1)
     m.volume = volumeSlider.value;
-    m.muted = m.volume === 0;
-    updateMuteIcon();
+    // Set muted flag for 0
+    m.muted = m.volume == 0;
+    updateMuteIcon(m);
   };
 
-  // Click progress bar to seek
   seekSlider.addEventListener('click', (e) => {
     const m = window._currentMedia;
     if (!m || !m.duration) return;
@@ -148,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
     m.currentTime = pct * m.duration;
   });
 
-  // Keyboard shortcuts
   document.addEventListener('keydown', (e) => {
     if (document.activeElement.tagName === "INPUT") return;
     const m = window._currentMedia;
@@ -166,11 +145,13 @@ document.addEventListener('DOMContentLoaded', () => {
         break;
       case "ArrowUp":
         m.volume = Math.min(1, m.volume + 0.05);
-        updateMuteIcon();
+        volumeSlider.value = m.volume;
+        updateMuteIcon(m);
         break;
       case "ArrowDown":
         m.volume = Math.max(0, m.volume - 0.05);
-        updateMuteIcon();
+        volumeSlider.value = m.volume;
+        updateMuteIcon(m);
         break;
       case "m":
       case "M":
@@ -179,13 +160,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // This function should be called when you switch between audio and video:
-  window.switchPlayerMedia = function(newMedia) {
-    switchMedia(newMedia);
-  };
-
-  // Initial binding (pick which is visible)
+  // Initial binding
   switchMedia(getActiveMedia());
 
-  // If your app logic hides/shows video/audio, call: window.switchPlayerMedia(audio) or window.switchPlayerMedia(video)
+  // Expose for app: call this after showing/hiding video or audio!
+  window.switchPlayerMedia = switchMedia;
 });
