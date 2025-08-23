@@ -150,22 +150,11 @@
   </section>
 
   <!-- Player View -->
+  <!-- Replace your Player View section with this -->
   <section id="view-player" class="view card" style="display:none;">
     <h2 id="nowPlayingTitle">Now Playing</h2>
-    <video id="videoPlayer" class="media-player" preload="metadata" playsinline style="display:none;" loop></video>
-    <audio id="audioPlayer" class="media-player" preload="metadata" style="display:none;" loop></audio>
-    <div id="customPlayer" class="custom-player">
-      <button id="playPauseBtn" class="player-btn" title="Play/Pause"><span id="playPauseIcon">▶️</span></button>
-      <button id="replayBtn" class="player-btn" title="Replay"><span>⟲</span></button>
-      <div class="progress-container">
-        <span id="currentTime" class="time-display">0:00</span>
-        <input id="seekSlider" type="range" min="0" max="100" value="0" step="0.1" class="slider seek-slider">
-        <span id="duration" class="time-display">0:00</span>
-      </div>
-      <button id="muteBtn" class="player-btn" title="Mute/Unmute"><span id="muteIcon">🔊</span></button>
-      <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="1" class="slider volume-slider">
-      <button id="fullscreenBtn" class="player-btn" title="Fullscreen"><span>⛶</span></button>
-    </div>
+    <video id="videoPlayer" controls style="display:none;" preload="metadata" playsinline loop></video>
+    <audio id="audioPlayer" controls style="display:none;" preload="metadata" loop></audio>
   </section>
 
 </main>
